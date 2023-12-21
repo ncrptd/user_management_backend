@@ -257,6 +257,7 @@ const getOnlyUsers = async (req, res) => {
     }
 };
 
+
 module.exports = {
     getUsers,
 };
@@ -267,5 +268,5 @@ module.exports = {
     deleteUserById,
     passwordReset,
     manageRoles,
-    getOnlyUsers
+    getOnlyUsers,
 };

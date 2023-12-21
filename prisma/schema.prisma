@@ -18,7 +18,7 @@ model User {
   role Role @default(USER)
   organization String
   currentSession Session? // Reference to the current session
-
+  uploads FileUpload[] 
 }
 
 model Session {
@@ -35,3 +35,17 @@ enum Role {
   TENANT
 }
 
+
+model FileUpload {
+  id String @id @default(uuid())
+  fileName String
+  fileSize Int
+  fileType String
+  uploadTimestamp DateTime @default(now())
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+  uploadedById String @unique 
+  uploadStatus String
+  s3Bucket String
+  organization String?
+  filePath String @default("")
+}

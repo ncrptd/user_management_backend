@@ -9,7 +9,7 @@ const authVerify = (req, res, next) => {
         if (token && isCustomAuth) {
             decoded = jwt.verify(token, jwt_secret);
 
-            req.user = { role: decoded?.role, id: decoded?.id };
+            req.user = { role: decoded?.role, id: decoded?.id, organization: decoded?.organization, email: decoded?.email };
         }
         return next();
     } catch (error) {
