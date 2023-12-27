@@ -9,14 +9,16 @@ const s3Client = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     }
 });
-
 const uploadFile = async (req, res) => {
     try {
-        console.log(req.user);
         const file = req.file;
         const bucketName = process.env.AWS_BUCKET_NAME;
-        const folderName = req.user.organization || 'temp';
-        const key = `${folderName}/${file.originalname}`;
+        const org = req.user.organization || 'temp';
+        const folderName = req.params.folderName;
+        const userId = req.user.id;
+
+        console.log(folderName);
+        const key = `${org}/${userId}/${folderName}/${file.originalname}`;
 
         // Step 1: Create a multipart upload
         const createMultipartUploadCommand = new CreateMultipartUploadCommand({
@@ -65,43 +67,44 @@ const uploadFile = async (req, res) => {
 
         const signedUrl = await getSignedUrl(s3Client, command);
 
-
-
         // Step 4: Save FileUpload data to the database
         const uploadedByUser = await prisma.user.findUnique({ where: { id: req.user.id } });
 
-        // Check if the user already has a fileUpload record
-        const existingFileUpload = await prisma.fileUpload.findFirst({
-            where: {
-                uploadedById: req.user.id,
-                // You can add additional conditions if needed
+        // Check if the folder name already exists in the user's uploadFolders
+        const userFolders = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { uploadFolders: true },
+        });
+
+        const existingFolders = userFolders ? userFolders.uploadFolders : [];
+        const newFolders = [...new Set([...existingFolders, folderName])]; // Use a Set to ensure unique folder names
+
+        // Create a new FileUpload record for each upload
+        const fileUpload = await prisma.fileUpload.create({
+            data: {
+                fileName: file.originalname,
+                fileSize: file.buffer.length,
+                fileType: file.mimetype,
+                uploadTimestamp: new Date(),
+                uploadedBy: { connect: { id: uploadedByUser.id } },
+                uploadStatus: 'Success',
+                s3Bucket: bucketName,
+                organization: req.user.organization || null,
+                filePath: signedUrl,
+                folderName
             },
         });
 
-        const fileUpload = existingFileUpload
-            ? existingFileUpload
-            : await prisma.fileUpload.create({
-                data: {
-                    fileName: file.originalname,
-                    fileSize: file.buffer.length,
-                    fileType: file.mimetype,
-                    uploadTimestamp: new Date(),
-                    uploadedBy: { connect: { id: uploadedByUser.id } },
-                    uploadStatus: 'Success',
-                    s3Bucket: bucketName,
-                    organization: req.user.organization || null,
-                    filePath: signedUrl
-                },
-            });
-
-        // Step 5: Update the User record with the new FileUpload
+        // Step 5: Update the User record with the new FileUpload and folder name
         await prisma.user.update({
             where: { id: req.user.id },
             data: {
                 uploads: { connect: { id: fileUpload.id } },
+                uploadFolders: { set: newFolders }, // Use set to update the array
             },
         });
 
+        console.log(fileUpload);
         res.json({ message: 'File uploaded to S3 and database successfully', fileUpload });
     } catch (error) {
         console.error('Error uploading file to S3:', error);
@@ -111,4 +114,42 @@ const uploadFile = async (req, res) => {
     }
 };
 
-module.exports = { uploadFile };
+const getAllUploadedFiles = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Retrieve all FileUpload records for the user
+        const uploadedFiles = await prisma.fileUpload.findMany({
+            where: {
+                uploadedById: userId,
+                // You can add additional conditions if needed
+            },
+        });
+
+        res.json({ uploadedFiles });
+    } catch (error) {
+        console.error('Error getting uploaded files:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+const getFolders = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Retrieve all folders for the user
+        const userFolders = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { uploadFolders: true },
+        });
+
+        const folders = userFolders ? userFolders.uploadFolders : [];
+
+        res.json({ folders });
+    } catch (error) {
+        console.error('Error getting folders:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+module.exports = { uploadFile, getAllUploadedFiles, getFolders };

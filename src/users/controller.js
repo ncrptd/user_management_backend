@@ -49,6 +49,7 @@ const addUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         const name = firstName + ' ' + lastName;
+        const defaultUploadFolders = ['Templates', 'Annual Reports'];
         const newUser = await prisma.user.create({
             data: {
                 name: name,
@@ -56,6 +57,7 @@ const addUser = async (req, res) => {
                 password: hashedPassword,
                 role: role,
                 organization: organization,
+                uploadFolders: defaultUploadFolders
             },
         });
 

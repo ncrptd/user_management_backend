@@ -69,7 +69,7 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: updatedUser.id, email: updatedUser.email, role: updatedUser.role, organization: updatedUser.organization },
+            { id: updatedUser.id, email: updatedUser.email, role: updatedUser.role, organization: updatedUser.organization, uploadFolders: updatedUser.uploadFolders },
             jwt_secret
         );
 
@@ -145,6 +145,7 @@ const signup = async (req, res) => {
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const defaultUploadFolders = ['Templates', 'Annual Reports'];
 
     try {
         const newUser = await prisma.user.create({
@@ -154,6 +155,7 @@ const signup = async (req, res) => {
                 password: hashedPassword,
                 role: role,
                 organization: organization,
+                uploadFolders: defaultUploadFolders
             },
         });
 
