@@ -36,4 +36,18 @@ const saveTemplate = async (req, res) => {
     }
 };
 
-module.exports = { saveTemplate };
+async function getTemplates(req, res) {
+    try {
+        const templates = await prisma.fileUpload.findMany({
+            where: {
+                folderName: 'Templates',
+            },
+        });
+        console.log('te', templates)
+        return res.status(200).json({ success: true, templates });
+    } catch (error) {
+        console.error('Error retrieving templates:', error);
+        throw error;
+    }
+}
+module.exports = { saveTemplate, getTemplates };

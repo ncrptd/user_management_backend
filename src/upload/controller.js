@@ -17,7 +17,6 @@ const uploadFile = async (req, res) => {
         const folderName = req.params.folderName;
         const userId = req.user.id;
 
-        console.log(folderName);
         const key = `${org}/${userId}/${folderName}/${file.originalname}`;
 
         // Step 1: Create a multipart upload
@@ -58,7 +57,7 @@ const uploadFile = async (req, res) => {
             MultipartUpload: { Parts: parts },
         });
 
-        const result = await s3Client.send(completeMultipartUploadCommand);
+        await s3Client.send(completeMultipartUploadCommand);
 
         const command = new GetObjectCommand({
             Bucket: bucketName,
