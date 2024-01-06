@@ -9,6 +9,7 @@ const s3Client = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     }
 });
+
 const uploadFile = async (req, res) => {
     try {
         const file = req.file;
@@ -103,7 +104,6 @@ const uploadFile = async (req, res) => {
             },
         });
 
-        console.log(fileUpload);
         res.json({ message: 'File uploaded to S3 and database successfully', fileUpload });
     } catch (error) {
         console.error('Error uploading file to S3:', error);
@@ -151,4 +151,36 @@ const getFolders = async (req, res) => {
     }
 };
 
-module.exports = { uploadFile, getAllUploadedFiles, getFolders };
+const getDownloadLink = async (req, res) => {
+    try {
+        const { folderName, fileName, adminTemplate } = req.body;
+
+        const { id: userId, organization } = req.user;
+        let key;
+        const bucketName = 'csvexceluploads'; // Replace with your actual S3 bucket name
+
+        if (adminTemplate) {
+            key = `${organization}/${folderName}/${fileName}`;
+        } else {
+            key = `${organization}/${userId}/${folderName}/${fileName}`;
+        }
+
+        const command = new GetObjectCommand({
+            Bucket: bucketName,
+            Key: key,
+        });
+
+        const expirationTime = 2000;
+
+        const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: expirationTime });
+        console.log('signedUrl', signedUrl);
+
+        res.status(200).json({ signedUrl });
+
+    } catch (error) {
+        console.error('download link error', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+module.exports = { uploadFile, getAllUploadedFiles, getFolders, getDownloadLink };
