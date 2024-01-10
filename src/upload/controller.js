@@ -13,12 +13,17 @@ const s3Client = new S3Client({
 const uploadFile = async (req, res) => {
     try {
         const file = req.file;
+        const confi = req.body.confidential;
+        const confidential = confi === 'true' ? true : confi === 'false' ? false : false;
         const bucketName = process.env.AWS_BUCKET_NAME;
         const org = req.user.organization || 'temp';
         const folderName = req.params.folderName;
         const userId = req.user.id;
 
         const key = `${org}/${userId}/${folderName}/${file.originalname}`;
+
+
+
 
         // Step 1: Create a multipart upload
         const createMultipartUploadCommand = new CreateMultipartUploadCommand({
@@ -91,7 +96,8 @@ const uploadFile = async (req, res) => {
                 s3Bucket: bucketName,
                 organization: req.user.organization || null,
                 filePath: signedUrl,
-                folderName
+                folderName,
+                confidential
             },
         });
 
@@ -116,16 +122,35 @@ const uploadFile = async (req, res) => {
 const getAllUploadedFiles = async (req, res) => {
     try {
         const userId = req.user.id;
+        const org = req.user.organization;
 
-        // Retrieve all FileUpload records for the user
+        // Retrieve FileUpload records for the user:
+        // - Either confidential files uploaded by the user
+        // - Or non-confidential files within the same organization
         const uploadedFiles = await prisma.fileUpload.findMany({
             where: {
-                uploadedById: userId,
-                // You can add additional conditions if needed
+                organization: org,
+                OR: [
+                    {
+                        confidential: true,
+                        uploadedById: userId,
+                    },
+                    {
+                        confidential: false,
+                    },
+                ],
+            },
+            include: {
+                uploadedBy: {
+                    select: {
+                        name: true,
+                    },
+                },
             },
         });
 
         res.json({ uploadedFiles });
+        console.log('up', uploadedFiles);
     } catch (error) {
         console.error('Error getting uploaded files:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -153,9 +178,8 @@ const getFolders = async (req, res) => {
 
 const getDownloadLink = async (req, res) => {
     try {
-        const { folderName, fileName, adminTemplate } = req.body;
+        const { folderName, fileName, adminTemplate, uploadedById: userId, organization } = req.body;
 
-        const { id: userId, organization } = req.user;
         let key;
         const bucketName = 'csvexceluploads'; // Replace with your actual S3 bucket name
 

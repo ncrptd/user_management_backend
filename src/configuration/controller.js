@@ -19,18 +19,20 @@ const uploadGlobalTemplate = async (req, res) => {
 
         const listObjectsResponse = await s3Client.send(new ListObjectsCommand(listObjectsParams));
 
-        // Delete each file in the destination folder
-        for (const object of listObjectsResponse.Contents) {
-            const deleteObjectParams = {
-                Bucket: s3Bucket,
-                Key: object.Key,
-            };
+        // Check if Contents is iterable (an array)
+        if (Array.isArray(listObjectsResponse.Contents)) {
+            // Delete each file in the destination folder
+            for (const object of listObjectsResponse.Contents) {
+                const deleteObjectParams = {
+                    Bucket: s3Bucket,
+                    Key: object.Key,
+                };
 
-            await s3Client.send(new DeleteObjectCommand(deleteObjectParams));
+                await s3Client.send(new DeleteObjectCommand(deleteObjectParams));
+            }
         }
 
         // Specify the parameters for copying the file to the destination
-
         const copyObjectParams = {
             Bucket: s3Bucket,
             CopySource: `/${s3Bucket}/${sourceKey}`,
@@ -39,7 +41,6 @@ const uploadGlobalTemplate = async (req, res) => {
 
         // Copy the object to the destination
         const copyObjectResponse = await s3Client.send(new CopyObjectCommand(copyObjectParams));
-
 
         res.status(200).json({ success: true, copyObjectResponse });
     } catch (error) {

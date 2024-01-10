@@ -61,4 +61,5 @@ model FileUpload {
   organization String?
   filePath String @default("")
   folderName String @default("")
+  confidential Boolean @default(false)
 }
