@@ -1,5 +1,6 @@
 const { prisma } = require('../../script');
-const { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, CopyObjectCommand, DeleteObjectCommand, ListObjectsCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+
 
 const s3Client = new S3Client();
 
@@ -129,4 +130,110 @@ const saveTemplate = async (req, res) => {
     }
 };
 
-module.exports = { saveTemplate, getTemplates, uploadGlobalTemplate };
+
+
+
+
+const uploadConfigFile = async (req, res) => {
+    try {
+        const configFile = req.file;
+        const { organization, id } = req.user;
+
+        const bucketName = process.env.AWS_BUCKET_NAME;
+        const folderName = `${organization}/ConfigFile`;
+
+        // List objects in the destination folder
+        const listObjectsParams = {
+            Bucket: bucketName,
+            Prefix: folderName,
+        };
+
+        const listObjectsResponse = await s3Client.send(new ListObjectsCommand(listObjectsParams));
+
+        // Check if Contents is iterable (an array)
+        if (Array.isArray(listObjectsResponse.Contents)) {
+            // Delete each file in the destination folder
+            for (const object of listObjectsResponse.Contents) {
+                const deleteObjectParams = {
+                    Bucket: bucketName,
+                    Key: object.Key,
+                };
+
+                await s3Client.send(new DeleteObjectCommand(deleteObjectParams));
+            }
+        }
+
+        // Specify the parameters for uploading the new file to the destination
+        const uploadParams = {
+            Bucket: bucketName,
+            Key: `${folderName}/${configFile.originalname}`,
+            Body: configFile.buffer,
+            ContentType: configFile.mimetype,
+        };
+
+        // Upload the new file to the destination
+        await s3Client.send(new PutObjectCommand(uploadParams));
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+
+const getConfigFile = async (req, res) => {
+    try {
+        const { organization } = req.user;
+        const bucketName = process.env.AWS_BUCKET_NAME;
+        const folderName = `${organization}/ConfigFile`;
+
+        // List objects in the folder
+        const listObjectsParams = {
+            Bucket: bucketName,
+            Prefix: folderName,
+        };
+
+        const listObjectsResponse = await s3Client.send(new ListObjectsCommand(listObjectsParams));
+
+        // Check if Contents is iterable (an array)
+        if (Array.isArray(listObjectsResponse.Contents) && listObjectsResponse.Contents.length > 0) {
+            // Retrieve the first file in the folder
+            const configFileKey = listObjectsResponse.Contents[0].Key;
+
+            // Retrieve the content of the file
+            const getObjectParams = {
+                Bucket: bucketName,
+                Key: configFileKey,
+            };
+
+            const { Body } = await s3Client.send(new GetObjectCommand(getObjectParams));
+
+            // Convert the stream to a buffer
+            const buffer = await streamToBuffer(Body);
+
+            // Parse the JSON content from the buffer
+            const jsonData = JSON.parse(buffer.toString());
+
+            // Respond with the parsed JSON data
+            console.log('j', jsonData)
+            res.status(200).json({ success: true, configFile: jsonData });
+        } else {
+            res.status(404).json({ error: 'Config file not found' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// Helper function to convert a stream to a buffer
+const streamToBuffer = async (stream) => {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', () => resolve(Buffer.concat(chunks)));
+        stream.on('error', (error) => reject(error));
+    });
+};
+module.exports = { saveTemplate, getTemplates, uploadGlobalTemplate, uploadConfigFile, getConfigFile };
