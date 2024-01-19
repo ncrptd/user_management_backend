@@ -150,7 +150,6 @@ const getAllUploadedFiles = async (req, res) => {
         });
 
         res.json({ uploadedFiles });
-        console.log('up', uploadedFiles);
     } catch (error) {
         console.error('Error getting uploaded files:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -197,7 +196,6 @@ const getDownloadLink = async (req, res) => {
         const expirationTime = 2000;
 
         const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: expirationTime });
-        console.log('signedUrl', signedUrl);
 
         res.status(200).json({ signedUrl });
 

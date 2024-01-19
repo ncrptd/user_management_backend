@@ -20,6 +20,11 @@ const login = async (req, res) => {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
+        // Check if the user is disabled
+        if (user.isDisabled) {
+            return res.status(401).json({ status: 'error', message: 'This account is disabled.' });
+        }
+
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordMatch) {

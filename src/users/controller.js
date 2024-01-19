@@ -57,7 +57,8 @@ const addUser = async (req, res) => {
                 password: hashedPassword,
                 role: role,
                 organization: organization,
-                uploadFolders: defaultUploadFolders
+                uploadFolders: defaultUploadFolders,
+                isDisabled: false,
             },
         });
 
@@ -70,6 +71,7 @@ const addUser = async (req, res) => {
                 email: newUser.email,
                 role: newUser.role,
                 organization: newUser.organization,
+                isDisabled: newUser.isDisabled
             },
         });
     } catch (error) {
@@ -112,8 +114,6 @@ const getUsers = async (req, res) => {
         } else {
             return res.status(403).json({ status: 'error', message: 'Forbidden' });
         }
-        console.log('org', user.organization)
-        console.log('us', users)
         res.status(200).json({ status: 'success', users });
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -144,7 +144,6 @@ const deleteUserById = async (req, res) => {
 
 const passwordReset = async (req, res) => {
     const { newPassword } = req.body;
-    console.log('n', req.body)
     const userId = req.params.userId;
     try {
         const user = await prisma.user.findUnique({
@@ -159,7 +158,6 @@ const passwordReset = async (req, res) => {
 
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-        console.log('p', hashedPassword)
         const updatedUser = await prisma.user.update({
             where: {
                 id: userId,
@@ -168,7 +166,6 @@ const passwordReset = async (req, res) => {
                 password: hashedPassword,
             },
         });
-        console.log('u', updatedUser)
 
         res.status(200).json({ message: 'Password reset successful' });
     } catch (error) {
@@ -248,7 +245,6 @@ const getOnlyUsers = async (req, res) => {
             return res.status(403).json({ status: 'error', message: 'Forbidden' });
         }
 
-        console.log('users', users);
 
         res.status(200).json({ status: 'success', users });
     } catch (error) {
@@ -259,10 +255,90 @@ const getOnlyUsers = async (req, res) => {
     }
 };
 
+const disableUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
 
-module.exports = {
-    getUsers,
+        // Check if the logged-in user has the authority to disable users
+
+        const loggedInUser = req.user
+
+
+        if (!loggedInUser || (loggedInUser.role !== 'ROOT_ADMIN' && loggedInUser.role !== 'TENANT_ADMIN')) {
+            return res.status(403).json({ status: 'error', message: 'Forbidden' });
+        }
+
+        // Find the user to be disabled
+        const userToDisable = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+        });
+
+        if (!userToDisable) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        // Disable the user
+        const updatedUser = await prisma.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                isDisabled: true,
+            },
+        });
+
+        res.status(200).json({ status: 'success', message: 'User disabled successfully', user: updatedUser });
+    } catch (error) {
+        console.error('Error disabling user:', error);
+        res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    } finally {
+        await prisma.$disconnect();
+    }
 };
+
+const enableUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Check if the logged-in user has the authority to enable users
+        const loggedInUser = req.user;
+
+        if (!loggedInUser || (loggedInUser.role !== 'ROOT_ADMIN' && loggedInUser.role !== 'TENANT_ADMIN')) {
+            return res.status(403).json({ status: 'error', message: 'Forbidden' });
+        }
+
+        // Find the user to be enabled
+        const userToEnable = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+        });
+
+        if (!userToEnable) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        // Enable the user
+        const updatedUser = await prisma.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                isDisabled: false,
+            },
+        });
+
+        res.status(200).json({ status: 'success', message: 'User enabled successfully', user: updatedUser });
+    } catch (error) {
+        console.error('Error enabling user:', error);
+        res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    } finally {
+        await prisma.$disconnect();
+    }
+};
+
 
 module.exports = {
     addUser,
@@ -271,4 +347,6 @@ module.exports = {
     passwordReset,
     manageRoles,
     getOnlyUsers,
+    disableUser,
+    enableUser
 };

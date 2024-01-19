@@ -53,7 +53,6 @@ const uploadGlobalTemplate = async (req, res) => {
 
 async function getTemplates(req, res) {
     try {
-        console.log('user', req.user);
         const { organization } = req.user;
         const templates = await prisma.fileUpload.findMany({
             where: {
@@ -63,7 +62,6 @@ async function getTemplates(req, res) {
 
         const destinationFolder = `${organization}/global-template`;
         const s3Bucket = 'csvexceluploads';
-        console.log('d', destinationFolder)
         const listObjectsParams = {
             Bucket: s3Bucket,
             Prefix: destinationFolder,
@@ -82,7 +80,6 @@ async function getTemplates(req, res) {
             }))
             : [];
 
-        console.log('te', templatesFromGlobalTemplateFolder);
 
         return res.status(200).json({ success: true, templates, adminTemplate: templatesFromGlobalTemplateFolder });
     } catch (error) {
@@ -216,7 +213,6 @@ const getConfigFile = async (req, res) => {
             const jsonData = JSON.parse(buffer.toString());
 
             // Respond with the parsed JSON data
-            console.log('j', jsonData)
             res.status(200).json({ success: true, configFile: jsonData });
         } else {
             res.status(404).json({ error: 'Config file not found' });

@@ -28,7 +28,6 @@ const getTenants = async (req, res) => {
             return res.status(403).json({ status: 'error', message: 'Forbidden' });
         }
 
-        console.log('tenants', tenants);
 
         res.status(200).json({ status: 'success', tenants });
     } catch (error) {

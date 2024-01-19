@@ -19,10 +19,11 @@ model User {
   password String
   role Role @default(USER)
   organization String
-  currentSession Session? // Reference to the current session
+  currentSession Session? 
   uploads FileUpload[] 
   excelTemplates ExcelTemplate[]
   uploadFolders String[]
+  isDisabled      Boolean        @default(false)
 }
 model Session {
   id String @id @default(uuid())
