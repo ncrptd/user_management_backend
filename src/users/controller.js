@@ -302,7 +302,7 @@ const enableUser = async (req, res) => {
     try {
         const { userId } = req.params;
 
-        // Check if the logged-in user has the authority to enable users
+        // Check if the logged-in user has the authority to enable usersnp
         const loggedInUser = req.user;
 
         if (!loggedInUser || (loggedInUser.role !== 'ROOT_ADMIN' && loggedInUser.role !== 'TENANT_ADMIN')) {

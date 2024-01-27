@@ -130,6 +130,12 @@ const getAllUploadedFiles = async (req, res) => {
         const uploadedFiles = await prisma.fileUpload.findMany({
             where: {
                 organization: org,
+                uploadedBy: {
+                    // Exclude files uploaded by users with the role of "tenant-admin"
+                    NOT: {
+                        role: 'TENANT_ADMIN',
+                    },
+                },
                 OR: [
                     {
                         confidential: true,
@@ -148,13 +154,14 @@ const getAllUploadedFiles = async (req, res) => {
                 },
             },
         });
-
+        console.log('up', uploadedFiles)
         res.json({ uploadedFiles });
     } catch (error) {
         console.error('Error getting uploaded files:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
 
 const getFolders = async (req, res) => {
     try {
