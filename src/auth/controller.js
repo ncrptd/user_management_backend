@@ -20,6 +20,11 @@ const login = async (req, res) => {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
+        // Check if the user is deleted
+
+        if (user.isDeleted) {
+            return res.status(401).json({ status: 'error', message: 'This account is deleted.' });
+        }
         // Check if the user is disabled
         if (user.isDisabled) {
             return res.status(401).json({ status: 'error', message: 'This account is disabled.' });

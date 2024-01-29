@@ -102,6 +102,8 @@ const getUsers = async (req, res) => {
                     role: {
                         not: 'ROOT_ADMIN'
                     }
+                    ,
+                    isDeleted: false
                 }
             });
 
@@ -109,6 +111,7 @@ const getUsers = async (req, res) => {
             users = await prisma.user.findMany({
                 where: {
                     organization: user.organization,
+                    isDeleted: false
                 },
             });
         } else {
@@ -127,9 +130,12 @@ const getUsers = async (req, res) => {
 const deleteUserById = async (req, res) => {
     const userId = req.params.userId;
     try {
-        const deletedUser = await prisma.user.delete({
+        const deletedUser = await prisma.user.update({
             where: {
                 id: userId,
+            },
+            data: {
+                isDeleted: true, // Set isDeleted to true
             },
         });
 
@@ -141,6 +147,7 @@ const deleteUserById = async (req, res) => {
         await prisma.$disconnect();
     }
 };
+
 
 const passwordReset = async (req, res) => {
     const { newPassword } = req.body;
@@ -220,6 +227,8 @@ const getOnlyUsers = async (req, res) => {
             where: {
                 id: req.user.id,
             },
+
+
         });
 
         if (!user) {
@@ -233,12 +242,16 @@ const getOnlyUsers = async (req, res) => {
                 where: {
                     role: 'USER',
                 },
+                isDeleted: false
+
             });
         } else if (user.role === 'TENANT_ADMIN') {
             users = await prisma.user.findMany({
                 where: {
                     role: 'USER',
                     organization: user.organization,
+                    isDeleted: false
+
                 },
             });
         } else {

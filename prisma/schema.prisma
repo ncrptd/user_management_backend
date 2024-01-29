@@ -24,11 +24,12 @@ model User {
   excelTemplates ExcelTemplate[]
   uploadFolders String[]
   isDisabled      Boolean        @default(false)
+  isDeleted Boolean     @default(false)
 }
 model Session {
   id String @id @default(uuid())
   user User @relation(fields: [userId], references: [id])
-   userId String @unique
+  userId String @unique
   loginTimestamp DateTime @default(now())
   logoutTimestamp DateTime?
 }

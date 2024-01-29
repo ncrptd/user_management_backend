@@ -6,6 +6,7 @@ const getTenants = async (req, res) => {
         const user = await prisma.user.findUnique({
             where: {
                 id: req.user.id,
+
             },
         });
 
@@ -22,6 +23,8 @@ const getTenants = async (req, res) => {
                         { role: 'TENANT_ADMIN' },
                         { role: 'TENANT' }
                     ]
+                    ,
+                    isDeleted: false
                 },
             });
         } else {
