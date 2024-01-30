@@ -101,8 +101,7 @@ const getUsers = async (req, res) => {
                 where: {
                     role: {
                         not: 'ROOT_ADMIN'
-                    }
-                    ,
+                    },
                     isDeleted: false
                 }
             });
@@ -117,6 +116,10 @@ const getUsers = async (req, res) => {
         } else {
             return res.status(403).json({ status: 'error', message: 'Forbidden' });
         }
+
+        // Filter out the user making the request
+        users = users.filter(u => u.id !== req.user.id);
+
         res.status(200).json({ status: 'success', users });
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -125,6 +128,7 @@ const getUsers = async (req, res) => {
         await prisma.$disconnect();
     }
 };
+
 
 
 const deleteUserById = async (req, res) => {
