@@ -212,4 +212,50 @@ const getDownloadLink = async (req, res) => {
     }
 };
 
-module.exports = { uploadFile, getAllUploadedFiles, getFolders, getDownloadLink };
+
+const generateSignedUrlsForMultipleFiles = async (files) => {
+    try {
+        const signedUrls = [];
+        const bucketName = 'csvexceluploads'; // Replace with your actual S3 bucket name
+        const expirationTime = 5000; // Expiration time for signed URLs
+
+        for (const file of files) {
+            const { folderName, fileName, adminTemplate, uploadedById: userId, organization } = file;
+            let key;
+
+            if (adminTemplate) {
+                key = `${organization}/${folderName}/${fileName}`;
+            } else {
+                key = `${organization}/${userId}/${folderName}/${fileName}`;
+            }
+
+            const command = new GetObjectCommand({
+                Bucket: bucketName,
+                Key: key,
+            });
+
+            const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: expirationTime });
+            signedUrls.push(signedUrl);
+        }
+
+        return signedUrls;
+    } catch (error) {
+        console.error('Error generating signed URLs for multiple files:', error);
+        throw error;
+    }
+};
+
+const getDownloadLinksForMultipleFiles = async (req, res) => {
+    try {
+        const files = req.body.files; // Array of file information
+
+        const signedUrls = await generateSignedUrlsForMultipleFiles(files);
+
+        res.status(200).json({ signedUrls });
+    } catch (error) {
+        console.error('Error getting download links for multiple files:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+module.exports = { uploadFile, getAllUploadedFiles, getFolders, getDownloadLink, getDownloadLinksForMultipleFiles };
