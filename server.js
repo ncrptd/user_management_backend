@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require("express");
 const app = express();
-const port = process.env.SERVER_PORT || 3000;
+const port = process.env.PORT || 3000;
 const cors = require('cors');
 const multer = require('multer');
 const storage = multer.memoryStorage();
