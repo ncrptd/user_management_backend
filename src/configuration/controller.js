@@ -61,7 +61,7 @@ async function getTemplates(req, res) {
         });
 
         const destinationFolder = `${organization}/global-template`;
-        const s3Bucket = 'csvexceluploads';
+        const s3Bucket = process.env.AWS_BUCKET_NAME;
         const listObjectsParams = {
             Bucket: s3Bucket,
             Prefix: destinationFolder,

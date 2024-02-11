@@ -187,7 +187,7 @@ const getDownloadLink = async (req, res) => {
         const { folderName, fileName, adminTemplate, uploadedById: userId, organization } = req.body;
 
         let key;
-        const bucketName = 'csvexceluploads'; // Replace with your actual S3 bucket name
+        const bucketName = process.env.AWS_BUCKET_NAME; // Replace with your actual S3 bucket name
 
         if (adminTemplate) {
             key = `${organization}/${folderName}/${fileName}`;
@@ -216,7 +216,7 @@ const getDownloadLink = async (req, res) => {
 const generateSignedUrlsForMultipleFiles = async (files) => {
     try {
         const signedUrls = [];
-        const bucketName = 'csvexceluploads'; // Replace with your actual S3 bucket name
+        const bucketName = process.env.AWS_BUCKET_NAME; // Replace with your actual S3 bucket name
         const expirationTime = 5000; // Expiration time for signed URLs
 
         for (const file of files) {
