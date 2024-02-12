@@ -187,7 +187,7 @@ const getDownloadLink = async (req, res) => {
         const { folderName, fileName, adminTemplate, uploadedById: userId, organization } = req.body;
 
         let key;
-        const bucketName = process.env.AWS_BUCKET_NAME; // Replace with your actual S3 bucket name
+        const bucketName = process.env.AWS_BUCKET_NAME;
 
         if (adminTemplate) {
             key = `${organization}/${folderName}/${fileName}`;

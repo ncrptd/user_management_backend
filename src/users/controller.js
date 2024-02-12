@@ -280,7 +280,6 @@ const disableUser = async (req, res) => {
 
         const loggedInUser = req.user
 
-
         if (!loggedInUser || (loggedInUser.role !== 'ROOT_ADMIN' && loggedInUser.role !== 'TENANT_ADMIN')) {
             return res.status(403).json({ status: 'error', message: 'Forbidden' });
         }
@@ -319,7 +318,7 @@ const enableUser = async (req, res) => {
     try {
         const { userId } = req.params;
 
-        // Check if the logged-in user has the authority to enable usersnp
+        // Check if the logged-in user has the authority to enable user
         const loggedInUser = req.user;
 
         if (!loggedInUser || (loggedInUser.role !== 'ROOT_ADMIN' && loggedInUser.role !== 'TENANT_ADMIN')) {

@@ -1,5 +1,4 @@
 const { prisma } = require('../../script');
-const bcrypt = require('bcrypt');
 
 const getTenants = async (req, res) => {
     try {
