@@ -9,6 +9,6 @@ router.get('/templates', authVerify, controller.getTemplates);
 router.post('/global-template', authVerify, controller.uploadGlobalTemplate);
 router.post('/config-file', authVerify, controller.uploadConfigFile);
 router.get('/config-file', authVerify, controller.getConfigFile);
-
+router.get('/global-template', authVerify, controller.getGlobalTemplate)
 
 module.exports = router

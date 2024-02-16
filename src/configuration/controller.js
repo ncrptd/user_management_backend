@@ -7,10 +7,26 @@ const s3Client = new S3Client();
 const uploadGlobalTemplate = async (req, res) => {
     try {
         const { fileName, organization, uploadedById, folderName, s3Bucket } = req.body;
-
+        console.log('body', req.body)
         const sourceKey = `${organization}/${uploadedById}/${folderName}/${fileName}`;
         const destinationFolder = `${organization}/global-template`;
         const destinationKey = `${destinationFolder}/${fileName}`;
+
+        // Find the existing global template and update it to set isGlobalTemplate to false
+        const existingGlobalTemplate = await prisma.fileUpload.findFirst({
+            where: {
+                organization,
+                isGlobalTemplate: true
+            }
+        });
+
+        if (existingGlobalTemplate) {
+            // Update existing global template to set isGlobalTemplate to false
+            await prisma.fileUpload.update({
+                where: { id: existingGlobalTemplate.id },
+                data: { isGlobalTemplate: false }
+            });
+        }
 
         // List objects in the destination folder
         const listObjectsParams = {
@@ -43,22 +59,48 @@ const uploadGlobalTemplate = async (req, res) => {
         // Copy the object to the destination
         const copyObjectResponse = await s3Client.send(new CopyObjectCommand(copyObjectParams));
 
+        // Find the newly uploaded file and update its isGlobalTemplate field to true
+        const uploadedFile = await prisma.fileUpload.updateMany({
+            where: {
+                fileName,
+                organization,
+                uploadedById
+            },
+            data: { isGlobalTemplate: true }
+        });
+
         res.status(200).json({ success: true, copyObjectResponse });
     } catch (error) {
-        console.error(error);
+        console.error('uGE', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 
 
+
+
+
+
 async function getTemplates(req, res) {
     try {
-        const { organization } = req.user;
-        const templates = await prisma.fileUpload.findMany({
-            where: {
-                folderName: 'Templates',
-            },
-        });
+        const { organization, role, id: userId } = req.user;
+        let templates;
+
+        if (role === 'TENANT_ADMIN') {
+            templates = await prisma.fileUpload.findMany({
+                where: {
+                    folderName: 'Templates',
+                    organization,
+                    uploadedById: userId,
+                },
+            });
+        } else {
+            templates = await prisma.fileUpload.findMany({
+                where: {
+                    folderName: 'Templates',
+                },
+            });
+        }
 
         const destinationFolder = `${organization}/global-template`;
         const s3Bucket = process.env.AWS_BUCKET_NAME;
@@ -74,12 +116,11 @@ async function getTemplates(req, res) {
             ? listObjectsResponse.Contents.map(object => ({
                 fileName: object.Key.split('/').pop(),
                 fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                organization, organization,
+                organization,
                 folderName: 'global-template',
                 uploadTimestamp: object.LastModified,
             }))
             : [];
-
 
         return res.status(200).json({ success: true, templates, adminTemplate: templatesFromGlobalTemplateFolder });
     } catch (error) {
@@ -87,6 +128,7 @@ async function getTemplates(req, res) {
         throw error;
     }
 }
+
 
 
 
@@ -232,4 +274,54 @@ const streamToBuffer = async (stream) => {
         stream.on('error', (error) => reject(error));
     });
 };
-module.exports = { saveTemplate, getTemplates, uploadGlobalTemplate, uploadConfigFile, getConfigFile };
+
+const getGlobalTemplate = async (req, res) => {
+    try {
+        const { organization } = req.user;
+
+        // Find the TENANT_ADMIN user within the same organization
+        const tenantAdmin = await prisma.user.findFirst({
+            where: {
+                organization: organization,
+                uploads: {
+                    some: {
+                        isGlobalTemplate: true
+                    }
+                }
+            }
+        });
+
+
+        if (!tenantAdmin) {
+            console.log('No TENANT_ADMIN found in the organization:', organization);
+            return res.status(404).json({ message: 'No TENANT_ADMIN found in the organization' });
+        }
+
+        console.log('TENANT_ADMIN found:', tenantAdmin);
+
+        // Fetch the admin template data associated with the TENANT_ADMIN user
+        const adminTemplate = await prisma.fileUpload.findFirst({
+            where: {
+                uploadedById: tenantAdmin.id,
+                templateData: { not: null }, // Ensure templateData exists
+                isGlobalTemplate: true
+            }
+        });
+
+        console.log('Admin template:', adminTemplate);
+
+        if (adminTemplate) {
+            // Send the templateData in the response
+            res.status(200).json(adminTemplate.templateData);
+        } else {
+            console.log('Admin template not found for TENANT_ADMIN:', tenantAdmin.id);
+            res.status(404).json({ message: 'Admin template not found' });
+        }
+    } catch (error) {
+        console.error('Error fetching admin template:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+
+module.exports = { saveTemplate, getTemplates, uploadGlobalTemplate, uploadConfigFile, getConfigFile, getGlobalTemplate };

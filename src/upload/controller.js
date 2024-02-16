@@ -10,10 +10,123 @@ const s3Client = new S3Client({
     }
 });
 
+// const uploadFile = async (req, res) => {
+//     try {
+//         const file = req.file;
+//         const confi = req.body.confidential;
+//         const templateData = JSON.parse(req.body.templateData);
+//         const confidential = confi === 'true' ? true : confi === 'false' ? false : false;
+//         const bucketName = process.env.AWS_BUCKET_NAME;
+//         const org = req.user.organization || 'temp';
+//         const folderName = req.params.folderName;
+//         const userId = req.user.id;
+
+//         const key = `${org}/${userId}/${folderName}/${file.originalname}`;
+
+
+
+
+//         // Step 1: Create a multipart upload
+//         const createMultipartUploadCommand = new CreateMultipartUploadCommand({
+//             Bucket: bucketName,
+//             Key: key,
+//         });
+//         const { UploadId } = await s3Client.send(createMultipartUploadCommand);
+
+//         // Step 2: Upload parts
+//         const partSize = 5 * 1024 * 1024; // 5MB part size
+//         const parts = [];
+//         let partNumber = 1;
+//         let offset = 0;
+
+//         while (offset < file.buffer.length) {
+//             const partBuffer = file.buffer.slice(offset, offset + partSize);
+//             const uploadPartCommand = new UploadPartCommand({
+//                 Bucket: bucketName,
+//                 Key: key,
+//                 UploadId: UploadId,
+//                 PartNumber: partNumber,
+//                 Body: partBuffer,
+//             });
+
+//             const { ETag } = await s3Client.send(uploadPartCommand);
+//             parts.push({ PartNumber: partNumber, ETag: ETag });
+
+//             offset += partSize;
+//             partNumber += 1;
+//         }
+
+//         // Step 3: Complete the multipart upload
+//         const completeMultipartUploadCommand = new CompleteMultipartUploadCommand({
+//             Bucket: bucketName,
+//             Key: key,
+//             UploadId: UploadId,
+//             MultipartUpload: { Parts: parts },
+//         });
+
+//         await s3Client.send(completeMultipartUploadCommand);
+
+//         const command = new GetObjectCommand({
+//             Bucket: bucketName,
+//             Key: key,
+//         });
+
+//         const signedUrl = await getSignedUrl(s3Client, command);
+
+//         // Step 4: Save FileUpload data to the database
+//         const uploadedByUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+//         // Check if the folder name already exists in the user's uploadFolders
+//         const userFolders = await prisma.user.findUnique({
+//             where: { id: userId },
+//             select: { uploadFolders: true },
+//         });
+
+//         const existingFolders = userFolders ? userFolders.uploadFolders : [];
+//         const newFolders = [...new Set([...existingFolders, folderName])]; // Use a Set to ensure unique folder names
+
+//         // Create a new FileUpload record for each upload
+//         const fileUpload = await prisma.fileUpload.create({
+//             data: {
+//                 fileName: file.originalname,
+//                 fileSize: file.buffer.length,
+//                 fileType: file.mimetype,
+//                 uploadTimestamp: new Date(),
+//                 uploadedBy: { connect: { id: uploadedByUser.id } },
+//                 uploadStatus: 'Success',
+//                 s3Bucket: bucketName,
+//                 organization: req.user.organization || null,
+//                 filePath: signedUrl,
+//                 folderName,
+//                 confidential,
+//                 templateData
+//             },
+//         });
+
+//         // Step 5: Update the User record with the new FileUpload and folder name
+//         await prisma.user.update({
+//             where: { id: req.user.id },
+//             data: {
+//                 uploads: { connect: { id: fileUpload.id } },
+//                 uploadFolders: { set: newFolders }, // Use set to update the array
+//             },
+//         });
+
+//         res.json({ message: 'File uploaded to S3 and database successfully', fileUpload });
+//     } catch (error) {
+//         console.error('Error uploading file to S3:', error);
+//         res.status(500).json({ error: 'Internal Server Error' });
+//     } finally {
+//         await prisma.$disconnect();
+//     }
+// };
+
 const uploadFile = async (req, res) => {
     try {
         const file = req.file;
         const confi = req.body.confidential;
+        let templateData = req.body.templateData && JSON.parse(req.body.templateData);
+
         const confidential = confi === 'true' ? true : confi === 'false' ? false : false;
         const bucketName = process.env.AWS_BUCKET_NAME;
         const org = req.user.organization || 'temp';
@@ -22,9 +135,19 @@ const uploadFile = async (req, res) => {
 
         const key = `${org}/${userId}/${folderName}/${file.originalname}`;
 
+        // Check if file with the same name exists in the database
+        const existingFile = await prisma.fileUpload.findFirst({
+            where: {
+                fileName: file.originalname,
+                folderName: folderName,
+            },
+        });
 
+        if (existingFile) {
+            return res.status(400).json({ error: 'File with the same name already exists' });
+        }
 
-
+        // Continue with file upload if file doesn't exist
         // Step 1: Create a multipart upload
         const createMultipartUploadCommand = new CreateMultipartUploadCommand({
             Bucket: bucketName,
@@ -97,7 +220,8 @@ const uploadFile = async (req, res) => {
                 organization: req.user.organization || null,
                 filePath: signedUrl,
                 folderName,
-                confidential
+                confidential,
+                templateData
             },
         });
 
@@ -111,6 +235,7 @@ const uploadFile = async (req, res) => {
         });
 
         res.json({ message: 'File uploaded to S3 and database successfully', fileUpload });
+
     } catch (error) {
         console.error('Error uploading file to S3:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -118,6 +243,7 @@ const uploadFile = async (req, res) => {
         await prisma.$disconnect();
     }
 };
+
 
 const getAllUploadedFiles = async (req, res) => {
     try {
@@ -154,7 +280,6 @@ const getAllUploadedFiles = async (req, res) => {
                 },
             },
         });
-        console.log('up', uploadedFiles)
         res.json({ uploadedFiles });
     } catch (error) {
         console.error('Error getting uploaded files:', error);
@@ -257,5 +382,6 @@ const getDownloadLinksForMultipleFiles = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 };
+
 
 module.exports = { uploadFile, getAllUploadedFiles, getFolders, getDownloadLink, getDownloadLinksForMultipleFiles };

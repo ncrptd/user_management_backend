@@ -63,4 +63,6 @@ model FileUpload {
   filePath String @default("")
   folderName String @default("")
   confidential Boolean @default(false)
+  templateData Json? 
+  isGlobalTemplate Boolean @default(false)
 }

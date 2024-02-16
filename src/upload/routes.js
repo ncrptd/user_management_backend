@@ -7,4 +7,5 @@ router.post('/download-link/multiple', authVerify, controller.getDownloadLinksFo
 router.post('/:folderName', authVerify, controller.uploadFile)
 router.get('/', authVerify, controller.getAllUploadedFiles);
 router.get('/folders', authVerify, controller.getFolders);
+
 module.exports = router
