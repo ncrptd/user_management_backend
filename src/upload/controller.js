@@ -132,7 +132,7 @@ const uploadFile = async (req, res) => {
         const org = req.user.organization || 'temp';
         const folderName = req.params.folderName;
         const userId = req.user.id;
-
+        console.log('file', file)
         const key = `${org}/${userId}/${folderName}/${file.originalname}`;
 
         // Check if file with the same name exists in the database

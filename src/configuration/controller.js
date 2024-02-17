@@ -7,7 +7,6 @@ const s3Client = new S3Client();
 const uploadGlobalTemplate = async (req, res) => {
     try {
         const { fileName, organization, uploadedById, folderName, s3Bucket } = req.body;
-        console.log('body', req.body)
         const sourceKey = `${organization}/${uploadedById}/${folderName}/${fileName}`;
         const destinationFolder = `${organization}/global-template`;
         const destinationKey = `${destinationFolder}/${fileName}`;
@@ -132,7 +131,7 @@ async function getTemplates(req, res) {
 
 
 
-
+// not using
 const saveTemplate = async (req, res) => {
     try {
         const { templateName, template } = req.body;
@@ -168,7 +167,7 @@ const saveTemplate = async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 };
-
+//
 
 
 
