@@ -117,7 +117,6 @@ async function getTemplates(req, res) {
                 fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 organization,
                 folderName: 'global-template',
-                uploadTimestamp: object.LastModified,
             }))
             : [];
 

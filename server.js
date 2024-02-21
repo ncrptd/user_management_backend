@@ -24,7 +24,9 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/tenants', tenantRoutes);
 
-app.use('/api/v1/upload', upload.single('file'), uploadRoutes);
+// Change the route definition to handle multiple files
+app.use('/api/v1/upload', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'relatedFile', maxCount: 1 }]), uploadRoutes);
+
 app.use('/api/v1/config', upload.single('configFile'), configurationRoutes);
 
 app.listen(port, () => {

@@ -54,7 +54,6 @@ model FileUpload {
   fileName String
   fileSize Int
   fileType String
-  uploadTimestamp DateTime @default(now())
   uploadedBy User @relation(fields: [uploadedById], references: [id])
   uploadedById String  
   uploadStatus String
@@ -65,4 +64,23 @@ model FileUpload {
   confidential Boolean @default(false)
   templateData Json? 
   isGlobalTemplate Boolean @default(false)
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt @default(now())
+  comment String?
+  relatedFile RelatedFile?
+}
+
+
+
+model RelatedFile {
+  id String @id @default(uuid())
+  fileName String
+  fileSize Int
+  fileType String
+  primaryFile FileUpload @relation(fields: [primaryFileId], references: [id])
+  primaryFileId String @unique
+   s3Bucket String
+  organization String?
+  filePath String @default("")
+  
 }
