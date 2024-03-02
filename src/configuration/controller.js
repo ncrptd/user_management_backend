@@ -291,11 +291,9 @@ const getGlobalTemplate = async (req, res) => {
 
 
         if (!tenantAdmin) {
-            console.log('No TENANT_ADMIN found in the organization:', organization);
             return res.status(404).json({ message: 'No TENANT_ADMIN found in the organization' });
         }
 
-        console.log('TENANT_ADMIN found:', tenantAdmin);
 
         // Fetch the admin template data associated with the TENANT_ADMIN user
         const adminTemplate = await prisma.fileUpload.findFirst({
@@ -306,13 +304,11 @@ const getGlobalTemplate = async (req, res) => {
             }
         });
 
-        console.log('Admin template:', adminTemplate);
 
         if (adminTemplate) {
             // Send the templateData in the response
             res.status(200).json(adminTemplate.templateData);
         } else {
-            console.log('Admin template not found for TENANT_ADMIN:', tenantAdmin.id);
             res.status(404).json({ message: 'Admin template not found' });
         }
     } catch (error) {

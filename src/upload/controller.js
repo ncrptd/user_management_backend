@@ -19,7 +19,6 @@ const uploadFile = async (req, res) => {
 
         const confi = req.body.confidential;
         const comment = req.body.comment;
-        console.log('com', req.body)
         let templateData = req.body.templateData && JSON.parse(req.body.templateData);
 
         const confidential = confi === 'true' ? true : confi === 'false' ? false : false;
@@ -171,7 +170,6 @@ const uploadFile = async (req, res) => {
 
 
                 // Handle related file upload success
-                console.log('Related file uploaded successfully:', relatedFileUpload);
             } catch (error) {
                 // If an error occurs during the related file upload process, return an error response
                 console.error('Error uploading related file to S3:', error);
