@@ -245,8 +245,8 @@ const getOnlyUsers = async (req, res) => {
             users = await prisma.user.findMany({
                 where: {
                     role: 'USER',
+                    isDeleted: false
                 },
-                isDeleted: false
 
             });
         } else if (user.role === 'TENANT_ADMIN') {

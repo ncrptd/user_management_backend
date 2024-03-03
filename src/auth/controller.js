@@ -83,7 +83,7 @@ const login = async (req, res) => {
             jwt_secret
         );
 
-        res.status(200).json({ user: updatedUser, token });
+        res.status(200).json({ user: { id: updatedUser.id, isDeleted: updatedUser.isDeleted, isDisabled: updatedUser.isDisabled, name: updatedUser.name, organization: updatedUser.organization, role: updatedUser.role, uploadFolders: updatedUser.uploadFolders }, token });
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).json({ status: 'error', message: 'Internal Server Error' });
